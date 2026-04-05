@@ -8,7 +8,7 @@ export default function DemoOne() {
         badgeText="AI-Powered Flight Path Optimization "
         badgeLabel="AeroNexus "
         ctaButtons={[
-            { text: "Explore Now", href: "#", primary: true },
+            { text: "Dashboard", href: "/dashboard", primary: true },
             { text: "Learn More", href: "#" }
         ]}
         microDetails={["Weather-aware route optimization", "Fuel-efficient flight path planning ", "Real-time weather integration  "]}

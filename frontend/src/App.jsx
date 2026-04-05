@@ -1,6 +1,12 @@
+import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import DashboardLayout from "./components/dashboard/DashboardLayout";
+
 export default function App() {
   return (
-    <Home />
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/dashboard" element={<DashboardLayout />} />
+    </Routes>
   );
 }
