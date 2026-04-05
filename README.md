@@ -45,7 +45,8 @@ AeroNexus helps airlines determine the most efficient flight paths by analyzing:
 - Mapbox / Leaflet
 
 ### Backend
-- C++
+- Node JS
+- Python
 - Graph Algorithms (Dijkstra / A*)
 - Optimization Logic
 
