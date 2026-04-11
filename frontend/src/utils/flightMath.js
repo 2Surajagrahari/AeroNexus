@@ -1,6 +1,22 @@
 const OWM_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
 /**
+ * Calculates the great circle distance between two points on the earth (specified in decimal degrees).
+ * Returns the distance in kilometers.
+ */
+export function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;  
+    const dLon = (lon2 - lon1) * Math.PI / 180; 
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+}
+
+/**
  * Calculates a dynamically adjusted flight path curve that dodges actual Severe Weather.
  * 
  * @param {Array} start - [lat, lng]
@@ -11,13 +27,21 @@ const OWM_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 export async function calculateSafeRoute(start, end, checkWeather = true) {
     const points = [];
     const segments = 50; // High resolution for curve math
-    const baseOffset = 10; 
+    
+    // Calculate longitudinal shortest direction (prevent circling the globe backwards)
+    let dLng = end[1] - start[1];
+    if (dLng > 180) dLng -= 360;
+    if (dLng < -180) dLng += 360;
+    
+    const dLat = end[0] - start[0];
+    const mapDist = Math.sqrt(dLat * dLat + dLng * dLng);
+    const baseOffset = mapDist * 0.2; 
 
     // Find the mathematical trajectory checkpoints at 25%, 50%, and 75% marks
     const checkNodes = [0.25, 0.5, 0.75].map(t => {
         return {
-            lat: (1 - t) * start[0] + t * end[0] + Math.sin(Math.PI * t) * baseOffset,
-            lng: (1 - t) * start[1] + t * end[1]
+            lat: start[0] + t * dLat + Math.sin(Math.PI * t) * baseOffset,
+            lng: start[1] + t * dLng
         };
     });
 
@@ -56,8 +80,8 @@ export async function calculateSafeRoute(start, end, checkWeather = true) {
 
     // Mathematical arc calculation with physics deflection
     for (let t = 0; t <= 1; t += 1/segments) {
-        let lat = (1 - t) * start[0] + t * end[0] + Math.sin(Math.PI * t) * baseOffset;
-        let lng = (1 - t) * start[1] + t * end[1];
+        let lat = start[0] + t * dLat + Math.sin(Math.PI * t) * baseOffset;
+        let lng = start[1] + t * dLng;
 
         // Apply repelling force from any detected Live storms
         activeStorms.forEach(storm => {

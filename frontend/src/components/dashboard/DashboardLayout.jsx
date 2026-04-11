@@ -1,8 +1,9 @@
 import { useState } from "react";
-import Sidebar from "./Sidebar";
+import Sidebar, { AIRCRAFT_MODELS } from "./Sidebar";
 import Topbar from "./Topbar";
 import MapView from "../map/MapView";
 import RoutePanel from "../route/RoutePanel";
+import TelemetryPanel from "./TelemetryPanel";
 import { getAirportData } from "../../utils/airports";
 
 export default function DashboardLayout() {
@@ -11,6 +12,9 @@ export default function DashboardLayout() {
         origin: getAirportData("DEL"),
         destination: getAirportData("BOM")
     });
+    
+    // Aircraft State
+    const [aircraft, setAircraft] = useState(AIRCRAFT_MODELS[0]);
     
     // Toggle state for Weather Matrix
     const [showWeather, setShowWeather] = useState(false);
@@ -48,14 +52,17 @@ export default function DashboardLayout() {
         <div className="h-screen w-screen flex flex-col bg-black text-white overflow-hidden">
             <Topbar />
 
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
                 <Sidebar 
                     onComputeRoute={handleComputeRoute} 
                     showWeather={showWeather}
                     setShowWeather={setShowWeather}
+                    aircraft={aircraft}
+                    setAircraft={setAircraft}
                 />
 
                 <div className="flex-1 relative">
+                    <TelemetryPanel activeRoute={activeRoute} aircraft={aircraft} />
                     <MapView 
                         activeRoute={activeRoute} 
                         showWeather={showWeather}
@@ -64,7 +71,7 @@ export default function DashboardLayout() {
                 </div>
             </div>
 
-            <RoutePanel />
+            <RoutePanel activeRoute={activeRoute} aircraft={aircraft} />
         </div>
     );
 }

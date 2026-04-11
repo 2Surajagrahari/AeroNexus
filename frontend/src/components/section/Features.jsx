@@ -150,7 +150,7 @@ export default function Features() {
 
     const calculateNodePosition = (index, total) => {
         const angle = ((index / total) * 360 + rotationAngle) % 360;
-        const radius = 220; // Increased radius slightly so nodes have more room
+        const radius = 250; // Increased radius to match 500px boundary
         const radian = (angle * Math.PI) / 180;
 
         const x = radius * Math.cos(radian) + centerOffset.x;
@@ -191,35 +191,51 @@ export default function Features() {
 
     return (
         <div
-            className="w-full min-h-screen py-24 flex flex-col items-center justify-center bg-black overflow-hidden relative z-10"
+            className="w-full min-h-screen py-32 flex flex-col items-center justify-center bg-black overflow-hidden relative z-10"
             ref={containerRef}
             onClick={handleContainerClick}
         >
-            <div className="absolute top-20 text-center text-white z-20 pointer-events-none">
-                <h2 className="text-3xl md:text-5xl font-extralight tracking-tight mb-4">Core Systems Overview</h2>
-                <p className="text-white/70 font-light max-w-xl mx-auto px-4">Explore the computational modules powering AeroNexus in real-time. Interact with the nodes to see active infrastructure data.</p>
+            {/* Aesthetic Background Grid & Glows */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+            <div className="absolute top-20 text-center z-20 pointer-events-none w-full px-6">
+                <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 backdrop-blur-md mb-4 mt-8">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span className="text-xs font-semibold tracking-wider text-blue-300 uppercase">Live Systems Matrix</span>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-light tracking-tighter mb-6 text-white">
+                    Core <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-300">Architecture</span>
+                </h2>
+                <p className="text-white/60 font-light max-w-2xl mx-auto text-lg leading-relaxed">
+                    Explore the computational modules powering AeroNexus in real-time. Interact with the orbital nodes to inspect active infrastructure data.
+                </p>
             </div>
             
-            <div className="relative w-full max-w-4xl h-[600px] flex items-center justify-center mt-12">
+            <div className="relative w-full max-w-4xl h-[650px] flex items-center justify-center mt-24">
                 <div
                     className="absolute w-full h-full flex items-center justify-center"
                     ref={orbitRef}
                     style={{
-                        perspective: "1000px",
-                        transform: `translate(${centerOffset.x}px, ${centerOffset.y}px)`,
+                        perspective: "1200px",
+                        transformStyle: "preserve-3d",
+                        transform: `translate(${centerOffset.x}px, ${centerOffset.y}px) rotateX(10deg)`,
                     }}
                 >
                     {/* Center Core */}
-                    <div className="absolute w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 animate-pulse flex items-center justify-center z-10">
-                        <div className="absolute w-28 h-28 rounded-full border border-white/20 animate-ping opacity-70"></div>
+                    <div className="absolute w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 via-sky-500 to-emerald-500 flex items-center justify-center z-10 shadow-[0_0_80px_rgba(56,189,248,0.4)]">
+                        <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-70" style={{ animationDuration: '3s' }}></div>
                         <div
-                            className="absolute w-36 h-36 rounded-full border border-white/10 animate-ping opacity-50"
-                            style={{ animationDelay: "0.5s" }}
+                            className="absolute -inset-4 rounded-full border border-blue-400/30 animate-pulse"
+                            style={{ animationDuration: '2s' }}
                         ></div>
-                        <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.8)]"></div>
+                        <div className="w-12 h-12 rounded-full bg-white/95 backdrop-blur-xl shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] flex items-center justify-center">
+                             <Globe className="w-6 h-6 text-blue-500 animate-[spin_10s_linear_infinite]" />
+                        </div>
                     </div>
 
-                    <div className="absolute w-[440px] h-[440px] rounded-full border border-white/10 border-dashed"></div>
+                    <div className="absolute w-[500px] h-[500px] rounded-full border border-blue-500/20 border-dashed shadow-[inset_0_0_100px_rgba(59,130,246,0.1)]"></div>
+                    <div className="absolute w-[500px] h-[500px] rounded-full border-t border-r border-blue-400/40 animate-[spin_20s_linear_infinite]"></div>
 
                     {timelineData.map((item, index) => {
                         const position = calculateNodePosition(index, timelineData.length);

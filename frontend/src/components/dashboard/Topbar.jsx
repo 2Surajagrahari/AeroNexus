@@ -10,7 +10,7 @@ export default function Topbar() {
                 </Link>
                 <div className="h-4 w-px bg-white/20"></div>
                 <div className="text-xs uppercase tracking-widest text-white/40 font-medium">
-                    Live Routing System ✈️
+                    Live Routing System
                 </div>
             </div>
 
