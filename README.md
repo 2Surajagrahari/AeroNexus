@@ -6,23 +6,23 @@
 ---
 
 ## 🌍 Overview
-AeroNexus operates as a fault-tolerant microservice architecture, helping airlines determine the most efficient flight paths by analyzing:
+AeroNexus operates as a fault-tolerant, multi-language microservice architecture. It helps airlines determine the most efficient flight paths by analyzing:
 
-* 🌦 **Real-time satellite weather conditions** (OpenWeather API)
-* ⛽ **Predictive fuel consumption models** (Python-based physics engine)
-* 📍 **Geospatial and live air traffic data** (ADS-B via OpenSky)
+* 🌦 **Real-time satellite weather & wind conditions** (OpenWeather API)
+* ⛽ **3D Physics & Fuel consumption models** (Node.js Routing Engine)
+* 🧠 **Machine Learning Delay Predictions** (Python/Flask Microservice)
 * 🤖 **Algorithmic pathfinding** (A* and Dijkstra over Indian Airspace)
 
 ---
 
 ## 🧠 Key Features
 
-* ✈️ **Algorithmic Route Optimization:** Utilizes the A-Star (A*) search algorithm and the Haversine formula to compute the absolute shortest paths across a geospatial graph of 300+ aviation nodes in milliseconds.
-* 🌩️ **"Two-Pass" Weather-Aware Rerouting:** Ingests live weather data to validate proposed routes. If severe weather is detected, the engine dynamically enforces a 50km safety penalty radius, automatically generating geospatial detours around the storm cell.
-* ⚡ **Zero-Latency WebSocket Updates:** Integrates Socket.io to push real-time route recalculations to the client the exact moment a weather anomaly appears on the radar, eliminating the need for manual refreshes.
-* 🛡️ **High-Performance Redis Caching:** Employs an in-memory Redis cache to store regional weather data, drastically reducing external API latency and preventing rate-limiting during high-volume dispatch requests.
-* ⛽ **Predictive Fuel Analysis:** Evaluates flight trajectories to project Estimated Time Enroute (ETE) and fuel burn, reducing operational costs through weather-resistant routing.
-* 🗺 **Interactive 3D Command Center:** A sleek, accessible dashboard built with React and Shadcn UI, featuring a Mapbox GL JS integration to visualize dynamic flight vectors, weather hazard zones, and live ADS-B air traffic in real-time.
+* ✈️ **3D Algorithmic Route Optimization:** Utilizes the A-Star (A*) search algorithm and the Haversine formula to compute the absolute shortest paths across a geospatial graph. The engine dynamically calculates whether it is more fuel-efficient to fly at 25,000 ft or climb to 35,000 ft based on wind resistance and distance.
+* 🌩️ **Live Weather-Aware Rerouting:** Ingests live weather data to validate proposed routes. If severe weather is detected, the engine dynamically calculates the cost of flying *over* the storm versus generating geospatial detours around the storm cell.
+* 🤖 **Machine Learning Delay Prediction:** A dedicated Python microservice utilizing `scikit-learn` ingests destination wind speeds and storm proximity to calculate a live probability score for flight delays.
+* ⚡ **High-Performance Redis Caching:** Employs an Upstash Serverless Redis cache to store regional weather data, drastically reducing external API latency and preventing rate-limiting during high-volume dispatch requests.
+* 🗺 **Interactive React Dashboard:** A sleek, accessible command center built with React and Tailwind CSS, featuring a customized `react-leaflet` integration to visualize dynamic flight vectors, glowing origin/destination nodes, and weather hazard zones.
+* 🐳 **Docker Orchestrated:** Fully containerized architecture using Docker Compose, allowing the frontend, Node engine, and Python ML service to boot up simultaneously within an isolated network.
 
 ---
 
@@ -32,48 +32,51 @@ AeroNexus operates as a fault-tolerant microservice architecture, helping airlin
 * **Framework:** React (Vite)
 * **Styling:** Tailwind CSS
 * **Components:** Shadcn UI, Framer Motion
-* **Visualization:** Mapbox GL JS (3D WebGL Mapping)
+* **Visualization:** React-Leaflet (Custom 2D WebGL Mapping)
 
-### Backend Architecture
+### Backend Architecture (Routing Engine)
 * **Server:** Node.js, Express.js
-* **Microservices/Analysis:** Python
-* **Caching Layer:** Redis
-* **Real-Time Engine:** WebSockets (Socket.io)
+* **Algorithms:** A* (A-Star) 3D Pathfinding, Haversine Geospatial Formula
+* **Caching Layer:** Upstash Redis Cloud
 
-### Core Algorithms
-* A* (A-Star) Pathfinding
-* Dijkstra's Algorithm
-* Haversine Geospatial Formula
-* Custom Priority Queues
+### Machine Learning Microservice
+* **Server:** Python, Flask
+* **Libraries:** Scikit-Learn, Pandas, NumPy, Joblib
+* **Model:** Predictive Flight Delay Probability
 
-### External APIs
-* **OpenWeatherMap API** (Live atmospheric data)
-* **OpenSky Network API** (Real-time ADS-B flight tracking)
+### DevOps & Orchestration
+* **Containerization:** Docker, Docker Compose
 
 ---
 
 ## 📂 Project Structure
-
 ```text
 AeroNexus/
 │
-├── public/                 # Static assets
-├── src/
-│   ├── frontend/           # React, Tailwind, and Shadcn UI components
-│   │   ├── components/     # Reusable UI widgets (Radar, Alerts, Stats)
-│   │   ├── hooks/          # Custom React hooks (WebSockets, Mapbox)
-│   │   └── App.jsx         # Main Command Center interface
-│   │
-│   ├── backend/            # Node.js Express server
-│   │   ├── routeEngine.js  # A* Graph algorithms & Haversine math
-│   │   ├── weatherApi.js   # OpenWeather integration & 50km radius logic
-│   │   ├── server.js       # Main API routes and Socket.io setup
-│   │   └── redisCache.js   # In-memory caching logic
-│   │
-│   └── data/               # Geospatial JSON datasets
-│       └── indian_airspace.json
+├── frontend/                   # React Command Center
+│   ├── src/
+│   │   ├── components/         # MapView, WeatherPanel, Sidebar
+│   │   ├── App.jsx             # Main Dashboard Layout
+│   │   └── main.jsx
+│   ├── Dockerfile
+│   └── package.json
 │
-├── .env                    # Hidden API Keys (Mapbox, OpenWeather)
-├── .gitignore              # Git ignore rules
-├── package.json            # Node dependencies
-└── README.md               # Project documentation
+├── backend/                    # Node.js Routing API
+│   ├── src/
+│   │   ├── routeEngine.js      # A* Graph algorithms & 3D altitude math
+│   │   ├── weatherService.js   # OpenWeather integration & Redis cache
+│   │   ├── dataBuilder.js      # CSV to JSON geospatial graph compiler
+│   │   └── server.js           # Express API
+│   ├── data/                   # Compiled airspace graphs
+│   ├── Dockerfile
+│   └── package.json
+│
+├── ml_service/                 # Python Machine Learning API
+│   ├── app.py                  # Flask server
+│   ├── flight_delay_model.pkl  # Trained ML model
+│   ├── requirements.txt        # Python dependencies
+│   └── Dockerfile
+│
+├── docker-compose.yml          # Master container orchestrator
+├── .gitignore                  # Git ignore rules
+└── README.md                   # Project documentation
