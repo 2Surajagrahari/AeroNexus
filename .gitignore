@@ -1,0 +1,17 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+
+# Python cache and environments
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Build folders
+dist/
+build/
+
+# Secrets and environment variables
+.env
+.env.local

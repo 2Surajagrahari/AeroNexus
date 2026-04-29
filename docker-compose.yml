@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. Python Machine Learning Service
+  ml_service:
+    build: ./ml_service
+    ports:
+      - "5000:5000"
+    container_name: aeronexus-ml
+
+  # 2. Node.js Routing Engine
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    container_name: aeronexus-backend
+    environment:
+      # This tells Node how to find the Python container!
+      - ML_URL=http://ml_service:5000 
+    depends_on:
+      - ml_service
+
+  # 3. React 3D Dashboard
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    container_name: aeronexus-frontend
+    environment:
+      # Pass your local env vars into the container
+      - VITE_WEATHER_API_KEY=${VITE_WEATHER_API_KEY}
+    depends_on:
+      - backend

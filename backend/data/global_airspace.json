@@ -1,0 +1,122 @@
+{
+  "JFK": {
+    "name": "John F Kennedy Intl",
+    "lat": 40.6398,
+    "lon": -73.7789,
+    "type": "airport",
+    "connections": [
+      "LAX",
+      "LHR",
+      "CDG",
+      "HND",
+      "DXB",
+      "DEL",
+      "BOM"
+    ]
+  },
+  "LHR": {
+    "name": "London Heathrow",
+    "lat": 51.4706,
+    "lon": -0.4619,
+    "type": "airport",
+    "connections": [
+      "CDG",
+      "DXB",
+      "JFK",
+      "DEL",
+      "BOM",
+      "LAX",
+      "HND"
+    ]
+  },
+  "LAX": {
+    "name": "Los Angeles Intl",
+    "lat": 33.9425,
+    "lon": -118.4081,
+    "type": "airport",
+    "connections": [
+      "JFK",
+      "LHR",
+      "HND",
+      "CDG",
+      "DEL",
+      "DXB",
+      "BOM"
+    ]
+  },
+  "CDG": {
+    "name": "Charles de Gaulle",
+    "lat": 49.0097,
+    "lon": 2.5479,
+    "type": "airport",
+    "connections": [
+      "LHR",
+      "DXB",
+      "JFK",
+      "DEL",
+      "BOM",
+      "LAX",
+      "HND"
+    ]
+  },
+  "DXB": {
+    "name": "Dubai Intl",
+    "lat": 25.2528,
+    "lon": 55.3644,
+    "type": "airport",
+    "connections": [
+      "BOM",
+      "DEL",
+      "CDG",
+      "LHR",
+      "HND",
+      "JFK",
+      "LAX"
+    ]
+  },
+  "HND": {
+    "name": "Tokyo Haneda",
+    "lat": 35.5523,
+    "lon": 139.7798,
+    "type": "airport",
+    "connections": [
+      "DEL",
+      "BOM",
+      "DXB",
+      "LAX",
+      "LHR",
+      "CDG",
+      "JFK"
+    ]
+  },
+  "DEL": {
+    "name": "Indira Gandhi Intl",
+    "lat": 28.5562,
+    "lon": 77.1,
+    "type": "airport",
+    "connections": [
+      "BOM",
+      "DXB",
+      "HND",
+      "CDG",
+      "LHR",
+      "JFK",
+      "LAX"
+    ]
+  },
+  "BOM": {
+    "name": "Chhatrapati Shivaji Maharaj Intl",
+    "lat": 19.0896,
+    "lon": 72.8656,
+    "type": "airport",
+    "connections": [
+      "DEL",
+      "DXB",
+      "HND",
+      "CDG",
+      "LHR",
+      "JFK",
+      "LAX"
+    ]
+  }
+}
