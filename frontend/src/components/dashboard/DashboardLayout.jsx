@@ -13,7 +13,7 @@ export default function DashboardLayout() {
         destination: getAirportData("BOM")
     });
 
-    // 🧠 NEW: Enterprise Backend State
+    // 🧠 Enterprise Backend State
     const [aiRouteData, setAiRouteData] = useState(null);
     const [isComputingBackend, setIsComputingBackend] = useState(false);
 
@@ -23,8 +23,14 @@ export default function DashboardLayout() {
     // Toggle state for Weather Matrix
     const [showWeather, setShowWeather] = useState(false);
 
+    // 🛰️ Toggle state for Live Air Traffic (ADS-B)
+    const [showTraffic, setShowTraffic] = useState(false);
+
     // HUD active weather payload
     const [destinationWeather, setDestinationWeather] = useState(null);
+
+    // 🔀 NEW: State to toggle between Alpha and Beta routes
+    const [selectedPath, setSelectedPath] = useState('alpha');
 
     const handleComputeRoute = async (originCode, destCode) => {
         const originData = getAirportData(originCode);
@@ -39,6 +45,7 @@ export default function DashboardLayout() {
             // Start Loading State for UI
             setIsComputingBackend(true);
             setAiRouteData(null);
+            setSelectedPath('alpha'); // 👈 Reset to Alpha every time you compute a new route!
 
             try {
                 // 🚀 1. THE MAGIC CONNECTION: Fetch A* Route & ML Data from Node/Redis
@@ -51,7 +58,7 @@ export default function DashboardLayout() {
                     console.error("⚠️ Node backend returned an error.");
                 }
 
-                // 🌤️ 2. Fetch live API conditions for HUD Panel (Your friend's original code)
+                // 🌤️ 2. Fetch live API conditions for HUD Panel
                 const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
                 const url = `https://api.openweathermap.org/data/2.5/weather?lat=${destData.coordinates[0]}&lon=${destData.coordinates[1]}&units=metric&appid=${apiKey}`;
                 const weatherRes = await fetch(url);
@@ -77,6 +84,8 @@ export default function DashboardLayout() {
                     onComputeRoute={handleComputeRoute}
                     showWeather={showWeather}
                     setShowWeather={setShowWeather}
+                    showTraffic={showTraffic}
+                    setShowTraffic={setShowTraffic}
                     aircraft={aircraft}
                     setAircraft={setAircraft}
                 />
@@ -84,22 +93,24 @@ export default function DashboardLayout() {
                 <div className="flex-1 relative">
                     <TelemetryPanel activeRoute={activeRoute} aircraft={aircraft} />
 
-                    {/* 🗺️ Injected aiRouteData into the Map */}
                     <MapView
                         activeRoute={activeRoute}
                         aiRouteData={aiRouteData}
                         showWeather={showWeather}
+                        showTraffic={showTraffic}
                         destinationWeather={destinationWeather}
+                        selectedPath={selectedPath}
                     />
                 </div>
             </div>
 
-            {/* 📊 Injected aiRouteData and computing status into the Route Panel */}
             <RoutePanel
                 activeRoute={activeRoute}
                 aiRouteData={aiRouteData}
                 isComputing={isComputingBackend}
                 aircraft={aircraft}
+                selectedPath={selectedPath}
+                setSelectedPath={setSelectedPath}
             />
         </div>
     );

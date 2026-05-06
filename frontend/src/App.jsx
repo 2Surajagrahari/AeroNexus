@@ -4,7 +4,7 @@ import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import Navbar from "./components/ui/Navbar";
-import Footer from "./components/ui/Footer";
+import { Footer } from "./components/footer-section";
 
 // Layout for public pages (Landing, About, Features)
 const PublicLayout = () => {

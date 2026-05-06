@@ -1,7 +1,8 @@
 import { Zap, ShieldCheck, Cpu } from "lucide-react";
 import { calculateDistance } from "../../utils/flightMath";
 
-export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isComputing }) {
+// 🔌 ADDED: selectedPath and setSelectedPath props
+export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isComputing, selectedPath, setSelectedPath }) {
 
     // Fallbacks
     const origin = activeRoute?.origin;
@@ -41,15 +42,23 @@ export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isCompu
                 {isComputing ? (
                     <p className="text-lg font-extralight tracking-tight text-cyan-400 animate-pulse">Computing AI...</p>
                 ) : (
-                    <p className="text-2xl font-extralight tracking-tight text-white">{distance > 0 ? '1' : '0'} <span className="text-sm font-light text-white/40">Found</span></p>
+                    <p className="text-2xl font-extralight tracking-tight text-white">{distance > 0 ? '2' : '0'} <span className="text-sm font-light text-white/40">Found</span></p>
                 )}
             </div>
 
             {distance > 0 && (
                 <>
-                    {/* Primary Optimal Route */}
-                    <div className="bg-gradient-to-br from-indigo-500/10 to-emerald-500/5 hover:bg-white/10 transition-colors cursor-pointer border border-indigo-500/30 p-5 rounded-2xl min-w-[260px] relative group overflow-hidden">
-                        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    {/* 🟢 PRIMARY OPTIMAL ROUTE (ALPHA) */}
+                    <div
+                        onClick={() => setSelectedPath('alpha')}
+                        className={`transition-all cursor-pointer border p-5 rounded-2xl min-w-[260px] relative group overflow-hidden ${selectedPath === 'alpha'
+                                ? "bg-gradient-to-br from-indigo-500/10 to-emerald-500/5 border-indigo-500/50 opacity-100 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                                : "bg-white/5 border-white/10 opacity-50 hover:opacity-80 hover:bg-white/10"
+                            }`}
+                    >
+                        {selectedPath === 'alpha' && (
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-100"></div>
+                        )}
 
                         <div className="flex justify-between items-start mb-3">
                             <h3 className="text-lg font-medium text-white tracking-tight">Alpha Path</h3>
@@ -66,8 +75,7 @@ export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isCompu
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-white/50 font-light">Ground Distance</span>
                                 <span className="font-mono text-white/90">
-                                    {/* Use backend A* distance if available, otherwise fallback to basic math */}
-                                    {aiRouteData?.data?.totalDistance ? Math.round(aiRouteData.data.totalDistance).toLocaleString() : distance.toLocaleString()} km
+                                    {aiRouteData?.alphaRoute?.totalDistance ? Math.round(aiRouteData.alphaRoute.totalDistance).toLocaleString() : distance.toLocaleString()} km
                                 </span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
@@ -79,8 +87,18 @@ export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isCompu
                         </div>
                     </div>
 
-                    {/* Secondary Route */}
-                    <div className="bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border border-white/10 p-5 rounded-2xl min-w-[260px] relative group overflow-hidden opacity-70 hover:opacity-100">
+                    {/* 🟠 SECONDARY ROUTE (BETA) */}
+                    <div
+                        onClick={() => setSelectedPath('beta')}
+                        className={`transition-all cursor-pointer border p-5 rounded-2xl min-w-[260px] relative group overflow-hidden ${selectedPath === 'beta'
+                                ? "bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/50 opacity-100 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                                : "bg-white/5 border-white/10 opacity-50 hover:opacity-80 hover:bg-white/10"
+                            }`}
+                    >
+                        {selectedPath === 'beta' && (
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-100"></div>
+                        )}
+
                         <div className="flex justify-between items-start mb-3">
                             <h3 className="text-lg font-medium text-white tracking-tight">Beta Path</h3>
                             <div className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider bg-amber-500/20 text-amber-500 font-medium">Alternative</div>
@@ -89,7 +107,9 @@ export default function RoutePanel({ activeRoute, aircraft, aiRouteData, isCompu
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-white/50 font-light">Air Distance</span>
-                                <span className="font-mono text-white/90">{(distance + Math.floor(distance * 0.12)).toLocaleString()} km</span>
+                                <span className="font-mono text-white/90">
+                                    {aiRouteData?.betaRoute?.totalDistance ? Math.round(aiRouteData.betaRoute.totalDistance).toLocaleString() : (distance + Math.floor(distance * 0.12)).toLocaleString()} km
+                                </span>
                             </div>
 
                             {/* 🧠 DYNAMIC AI Delay Prediction Injection */}

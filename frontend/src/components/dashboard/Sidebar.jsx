@@ -10,7 +10,8 @@ export const AIRCRAFT_MODELS = [
     { id: "C700", model: "Cessna Citation", cruiseSpeed: 850, maxAltitude: 45000, efficiency: 0.6 }
 ];
 
-export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, aircraft, setAircraft }) {
+// 🔌 ADDED: showTraffic and setShowTraffic props
+export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, showTraffic, setShowTraffic, aircraft, setAircraft }) {
     const [origin, setOrigin] = useState("DEL");
     const [destination, setDestination] = useState("BOM");
 
@@ -33,19 +34,18 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, a
                 <label className="text-[10px] uppercase tracking-widest text-white/50 font-medium ml-1">Aircraft Configuration</label>
                 <div className="grid grid-cols-1 gap-2">
                     {AIRCRAFT_MODELS.map(ac => (
-                        <div 
+                        <div
                             key={ac.id}
                             onClick={() => setAircraft(ac)}
-                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                                aircraft.id === ac.id 
-                                    ? "bg-indigo-500/20 border-indigo-500/50 text-white" 
+                            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${aircraft.id === ac.id
+                                    ? "bg-indigo-500/20 border-indigo-500/50 text-white"
                                     : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                            }`}
+                                }`}
                         >
                             <Plane className="w-4 h-4" />
                             <div>
                                 <div className="text-sm font-medium">{ac.model}</div>
-                                <div className="text-[10px] uppercase tracking-wider opacity-70">Mach {(ac.cruiseSpeed/1225).toFixed(2)} | FL{Math.floor(ac.maxAltitude/100)}</div>
+                                <div className="text-[10px] uppercase tracking-wider opacity-70">Mach {(ac.cruiseSpeed / 1225).toFixed(2)} | FL{Math.floor(ac.maxAltitude / 100)}</div>
                             </div>
                         </div>
                     ))}
@@ -55,25 +55,23 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, a
             <div className="h-px bg-white/10 w-full my-1"></div>
 
             <div className="flex flex-col gap-4">
-                {/* Origin */}
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase tracking-widest text-white/50 font-medium ml-1">Origin Node (IATA)</label>
-                    <Input 
+                    <Input
                         value={origin}
                         onChange={(e) => setOrigin(e.target.value.toUpperCase())}
-                        className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-11 focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl" 
-                        placeholder="e.g. DEL" 
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-11 focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl"
+                        placeholder="e.g. DEL"
                     />
                 </div>
 
-                {/* Destination */}
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase tracking-widest text-white/50 font-medium ml-1">Terminal Node (IATA)</label>
-                    <Input 
+                    <Input
                         value={destination}
                         onChange={(e) => setDestination(e.target.value.toUpperCase())}
-                        className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-11 focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl" 
-                        placeholder="e.g. LHR" 
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/20 h-11 focus-visible:ring-1 focus-visible:ring-white/30 rounded-xl"
+                        placeholder="e.g. LHR"
                     />
                 </div>
             </div>
@@ -84,22 +82,26 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, a
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between group">
                     <span className="text-sm font-light text-white/70 group-hover:text-white transition-colors">Weather Matrix Layer</span>
-                    <Switch 
+                    <Switch
                         checked={showWeather}
                         onCheckedChange={setShowWeather}
-                        className="data-[state=checked]:bg-indigo-500" 
+                        className="data-[state=checked]:bg-indigo-500"
                     />
                 </div>
 
+                {/* 🛰️ THE NEW LIVE TRAFFIC TOGGLE */}
                 <div className="flex items-center justify-between group">
-                    <span className="text-sm font-light text-white/70 group-hover:text-white transition-colors">Airspace Restrictions</span>
-                    <Switch className="data-[state=checked]:bg-indigo-500" />
+                    <span className="text-sm font-light text-white/70 group-hover:text-white transition-colors">Live Air Traffic (ADS-B)</span>
+                    <Switch
+                        checked={showTraffic}
+                        onCheckedChange={setShowTraffic}
+                        className="data-[state=checked]:bg-amber-500"
+                    />
                 </div>
             </div>
 
             <div className="mt-auto pt-4">
-                {/* Button */}
-                <Button 
+                <Button
                     onClick={handleCompute}
                     className="w-full bg-white text-black hover:bg-white/90 h-12 rounded-xl text-sm font-medium tracking-wide transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                 >

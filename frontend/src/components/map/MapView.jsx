@@ -3,7 +3,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import WeatherPanel from "../dashboard/WeatherPanel";
+import { calculateSafeRoute } from "../../utils/flightMath";
 
+// ===================== ICON DEFINITIONS =====================
 const planeIcon = new L.Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     iconSize: [30, 30],
@@ -38,78 +40,43 @@ const createGlowingIcon = (color) => {
 
 const originIcon = createGlowingIcon('#10b981'); // Emerald
 const destIcon = createGlowingIcon('#06b6d4'); // Cyan
-
-import { calculateSafeRoute } from "../../utils/flightMath";
+const liveTrafficIcon = createGlowingIcon('#f59e0b'); // Amber Glow
 
 // ===================== FLIGHT PATH COMPONENT =====================
-function AnimatedFlightPath({ originCoords, destCoords, originId, destId, showWeather }) {
+// 🔌 ADDED: aiRouteData and selectedPath props
+function AnimatedFlightPath({ originCoords, destCoords, aiRouteData, selectedPath }) {
     const map = useMap();
     const [planeIndex, setPlaneIndex] = useState(0);
     const [dynamicPositions, setDynamicPositions] = useState([]);
-    const [isComputing, setIsComputing] = useState(false);
 
-    // Compute Math Path Asynchronously using our Node.js Backend!
+    // 🚀 Instantly updates when you click Alpha or Beta without fetching again!
     useEffect(() => {
-        let active = true;
         setPlaneIndex(0);
-        setIsComputing(true);
 
-        const computeRoute = async () => {
-            try {
-                // 1. Ask the Node Server for the Enterprise Route
-                // Note: We use the activeRoute's IDs (e.g. "DEL", "CCU")
-                // We need to pass originId and destId as props to AnimatedFlightPath!
-                const response = await fetch(`http://localhost:3000/api/route?from=${originId}&to=${destId}`);
-                const aiData = await response.json();
+        if (aiRouteData) {
+            // Pick the route based on the toggle state!
+            const activeBackendRoute = selectedPath === 'alpha'
+                ? aiRouteData.alphaRoute
+                : aiRouteData.betaRoute;
 
-                console.log("🧠 NODE/AI BACKEND RESPONSE:", aiData);
-
-                if (active) {
-                    // Assuming your backend returns an array of coordinates in aiData.data.coordinates
-                    // OR if it just returns node IDs, you map them here. 
-                    // Let's fallback to the local math ONLY if the server is down.
-                    if (aiData && aiData.data && aiData.data.route) {
-                        // TODO: If backend returns coordinates array, use it directly!
-                        // setDynamicPositions(aiData.data.coordinates);
-
-                        // Temporary fallback until we verify exact backend JSON structure:
-                        const backupPath = await calculateSafeRoute(originCoords, destCoords);
-                        setDynamicPositions(backupPath);
-                    }
-                    setIsComputing(false);
-                }
-            } catch (error) {
-                console.error("⚠️ Backend offline! Falling back to local math.", error);
-                const backupPath = await calculateSafeRoute(originCoords, destCoords);
-                if (active) {
-                    setDynamicPositions(backupPath);
-                    setIsComputing(false);
-                }
+            if (activeBackendRoute && activeBackendRoute.route) {
+                const backendCoords = activeBackendRoute.route.map(node => [node.lat, node.lon]);
+                setDynamicPositions(backendCoords);
             }
-        };
+        } else {
+            // Fallback before API loads
+            calculateSafeRoute(originCoords, destCoords).then(setDynamicPositions);
+        }
+    }, [originCoords, destCoords, aiRouteData, selectedPath]);
 
-        computeRoute();
-
-        return () => {
-            active = false;
-        };
-    }, [originCoords, destCoords, showWeather]);
-
-    // Handle plane animation along the loaded route
     useEffect(() => {
-        if (dynamicPositions.length === 0 || isComputing) return;
-
+        if (dynamicPositions.length === 0) return;
         const interval = setInterval(() => {
-            setPlaneIndex((prev) => {
-                if (prev < dynamicPositions.length - 1) return prev + 1;
-                return prev; // Stop at destination
-            });
+            setPlaneIndex((prev) => (prev < dynamicPositions.length - 1 ? prev + 1 : prev));
         }, 100);
-
         return () => clearInterval(interval);
-    }, [dynamicPositions, isComputing]);
+    }, [dynamicPositions]);
 
-    // Dynamically lock camera on the generated route bounds
     useEffect(() => {
         if (!map || dynamicPositions.length === 0) return;
         const bounds = L.latLngBounds(dynamicPositions);
@@ -118,18 +85,16 @@ function AnimatedFlightPath({ originCoords, destCoords, originId, destId, showWe
 
     if (dynamicPositions.length === 0) return null;
 
+    // 🎨 Changes color: Cyan for Alpha, Orange for Beta!
+    const lineColor = selectedPath === 'alpha' ? "#06b6d4" : "#f97316";
+
     return (
         <>
-            {/* Base Line (Faint track) */}
-            <Polyline
-                positions={dynamicPositions}
-                pathOptions={{ color: "rgba(255, 255, 255, 0.1)", weight: 3 }}
-            />
-            {/* Glowing Animated Dash Line */}
+            <Polyline positions={dynamicPositions} pathOptions={{ color: "rgba(255, 255, 255, 0.1)", weight: 3 }} />
             <Polyline
                 positions={dynamicPositions}
                 pathOptions={{
-                    color: "#06b6d4", // Cyan glow
+                    color: lineColor,
                     weight: 3,
                     opacity: 0.8,
                     dashArray: "15, 20",
@@ -137,24 +102,45 @@ function AnimatedFlightPath({ originCoords, destCoords, originId, destId, showWe
                 }}
             />
             {dynamicPositions.length > 0 && dynamicPositions[planeIndex] && (
-                <Marker
-                    position={dynamicPositions[planeIndex]}
-                    icon={planeIcon}
-                />
+                <Marker position={dynamicPositions[planeIndex]} icon={planeIcon} />
             )}
         </>
     );
 }
 
 // ===================== MAIN MAP COMPONENT =====================
-export default function MapView({ activeRoute, showWeather, destinationWeather }) {
+// 🔌 ADDED: aiRouteData and selectedPath props
+export default function MapView({ activeRoute, aiRouteData, showWeather, showTraffic, destinationWeather, selectedPath }) {
 
-    // We expect activeRoute to have an `origin` and `destination`.
-    // We map them gracefully if they exist.
     const origin = activeRoute?.origin;
     const destination = activeRoute?.destination;
+    const centerCoord = origin ? origin.coordinates : [20, 77]; // Default to India
 
-    const centerCoord = origin ? origin.coordinates : [20, 77]; // Default to India if no data
+    // 🛰️ STATE FOR LIVE PLANES
+    const [livePlanes, setLivePlanes] = useState([]);
+
+    // 📡 FETCH TRAFFIC EVERY 15 SECONDS
+    useEffect(() => {
+        if (!showTraffic) {
+            setLivePlanes([]); // Clear map if toggled off
+            return;
+        }
+
+        const fetchTraffic = async () => {
+            try {
+                const res = await fetch('http://localhost:3000/api/traffic');
+                const json = await res.json();
+                if (json.data) setLivePlanes(json.data);
+            } catch (err) {
+                console.error("⚠️ Live traffic failed:", err);
+            }
+        };
+
+        fetchTraffic(); // Fetch immediately on toggle
+        const interval = setInterval(fetchTraffic, 15000); // Poll every 15s
+
+        return () => clearInterval(interval);
+    }, [showTraffic]);
 
     return (
         <div className="w-full h-full relative group">
@@ -206,12 +192,35 @@ export default function MapView({ activeRoute, showWeather, destinationWeather }
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
                 />
+
+                {/* Optional Weather Overlay */}
                 {showWeather && (
                     <TileLayer
                         url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_WEATHER_API_KEY}`}
                         opacity={0.65}
                     />
                 )}
+
+                {/* 🛰️ RENDER LIVE PLANES */}
+                {showTraffic && livePlanes.map(plane => (
+                    <Marker
+                        key={plane.id}
+                        position={[plane.lat, plane.lon]}
+                        icon={liveTrafficIcon}
+                    >
+                        <Popup>
+                            <div className="font-mono text-[10px] text-amber-500 mb-1 tracking-widest">LIVE FLIGHT</div>
+                            <div className="text-lg font-medium text-white mb-2">{plane.callsign}</div>
+                            <div className="text-xs font-light text-white/70">Altitude: {Math.round(plane.altitude_m * 3.28084)} ft</div>
+                            <div className="text-xs font-light text-white/70">Speed: {Math.round(plane.velocity_ms * 3.6)} km/h</div>
+                            <div className="text-xs font-light text-white/70 mt-1 border-t border-white/10 pt-1">
+                                Country: {plane.country}
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
+
+                {/* Route Markers */}
                 {origin && (
                     <Marker position={origin.coordinates} icon={originIcon}>
                         <Popup>
@@ -230,13 +239,13 @@ export default function MapView({ activeRoute, showWeather, destinationWeather }
                     </Marker>
                 )}
 
+                {/* The Path connecting them */}
                 {origin && destination && (
                     <AnimatedFlightPath
                         originCoords={origin.coordinates}
                         destCoords={destination.coordinates}
-                        originId={origin.id}
-                        destId={destination.id}
-                        showWeather={showWeather}
+                        aiRouteData={aiRouteData}
+                        selectedPath={selectedPath}
                     />
                 )}
 

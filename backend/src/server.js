@@ -28,7 +28,7 @@ app.get('/api/route', async (req, res) => {
 
         console.log(`\n✈️ --- NEW FLIGHT PLAN REQUEST: ${startAirport} to ${endAirport} ---`);
 
-        // PASS 1: Calculate the base shortest-distance route
+        // PASS 1: Calculate the base shortest-distance route (BETA PATH)
         let initialResult = runAStarOptimization(startAirport, endAirport, [], {});
 
         // 🛡️ BULLETPROOF FIX: Check if nodes are missing OR if a path couldn't be found
@@ -51,7 +51,7 @@ app.get('/api/route', async (req, res) => {
             }
         }
 
-        // PASS 3: Recalculate using WIND PHYSICS and STORM DETOURS
+        // PASS 3: Recalculate using WIND PHYSICS and STORM DETOURS (ALPHA PATH)
         let optimizedResult = runAStarOptimization(startAirport, endAirport, hazardousNodes, windData);
 
         let destWind = windData[endAirport] ? windData[endAirport].speed : 0;
@@ -67,13 +67,15 @@ app.get('/api/route', async (req, res) => {
             console.error("⚠️ Python ML Microservice is offline. Skipping delay prediction.");
         }
 
+        // 🔀 THE ALPHA/BETA PAYLOAD UPDATE
         if (hazardousNodes.length > 0) {
             console.log(`🌩️ Rerouting aircraft around live storms at: ${hazardousNodes.join(', ')}`);
             return res.json({
                 message: "LIVE WEATHER ALERT: Route dynamically recalculated to avoid severe weather. Fuel optimized.",
                 avoidedHazards: hazardousNodes,
                 ai_delay_prediction: delayPrediction,
-                data: optimizedResult
+                alphaRoute: optimizedResult, // 👈 THE AI WEATHER DETOUR
+                betaRoute: initialResult     // 👈 THE SHORTEST DISTANCE (IGNORING WEATHER)
             });
         }
 
@@ -81,7 +83,8 @@ app.get('/api/route', async (req, res) => {
         res.json({
             message: "Live weather check passed. Clear skies route approved. Fuel optimized.",
             ai_delay_prediction: delayPrediction,
-            data: optimizedResult
+            alphaRoute: optimizedResult, // 👈 THE NORMAL ROUTE
+            betaRoute: initialResult     // 👈 EXACT SAME AS ALPHA WHEN NO STORMS
         });
 
     } catch (error) {
@@ -89,6 +92,38 @@ app.get('/api/route', async (req, res) => {
         res.status(500).json({ error: "Internal Server Error during route calculation." });
     }
 });
+
+
+//writing this code for fetching the real time flights that are flying over india 
+app.get('/api/traffic', async (req, res) => {
+    try {
+        console.log("📡 Fetching Live ADS-B Traffic over India...");
+
+        // Bounding Box for India: lamin=8.0, lomin=68.0, lamax=37.0, lomax=97.0
+        const response = await fetch('https://opensky-network.org/api/states/all?lamin=8.0&lomin=68.0&lamax=37.0&lomax=97.0');
+
+        if (!response.ok) throw new Error("OpenSky Network rejected the request.");
+        const data = await response.json();
+
+        // OpenSky returns a massive, confusing array. We map it into clean objects for React!
+        const planes = (data.states || []).map(state => ({
+            id: state[0],
+            callsign: state[1] ? state[1].trim() : 'UNKNOWN',
+            country: state[2],
+            lon: state[5],
+            lat: state[6],
+            altitude_m: state[7] || 0,
+            velocity_ms: state[9] || 0,
+            heading: state[10] || 0
+        })).filter(p => p.lat && p.lon); // Only keep planes with valid GPS coordinates
+
+        res.json({ status: "success", count: planes.length, data: planes });
+    } catch (error) {
+        console.error("⚠️ Traffic API Error:", error.message);
+        res.status(500).json({ error: "Failed to fetch live traffic." });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`🚀 AeroNexus Live API running on http://localhost:${PORT}`);
