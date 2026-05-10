@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { LogoCloud } from "../components/logo-cloud-3";
 import GalleryHoverCarousel from "../components/gallery-hover-carousel";
 import { TestimonialsColumn } from "../components/testimonials-columns-1";
+import FeaturedSectionStats from "../components/featured-section-stats";
 
 const Button = React.forwardRef(
   ({ variant = "default", size = "default", className = "", children, ...props }, ref) => {
@@ -332,6 +333,11 @@ export default function Home() {
           </p>
           <LogoCloud logos={aviationLogos} />
         </div>
+      </section>
+
+      {/* Featured Stats Section */}
+      <section className="relative bg-black border-t border-gray-800/50">
+        <FeaturedSectionStats />
       </section>
 
       {/* Testimonials Section */}

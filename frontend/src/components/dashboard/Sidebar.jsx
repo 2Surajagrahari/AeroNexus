@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plane } from "lucide-react";
+import { Plane, Map, Activity } from "lucide-react"; // 👈 IMPORTED NEW ICONS
 
 export const AIRCRAFT_MODELS = [
     { id: "B777", model: "Boeing 777", cruiseSpeed: 900, maxAltitude: 43000, efficiency: 0.8 },
@@ -10,8 +10,8 @@ export const AIRCRAFT_MODELS = [
     { id: "C700", model: "Cessna Citation", cruiseSpeed: 850, maxAltitude: 45000, efficiency: 0.6 }
 ];
 
-// 🔌 ADDED: showTraffic and setShowTraffic props
-export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, showTraffic, setShowTraffic, aircraft, setAircraft }) {
+// 🔌 ADDED currentView props
+export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, showTraffic, setShowTraffic, aircraft, setAircraft, currentView, setCurrentView }) {
     const [origin, setOrigin] = useState("DEL");
     const [destination, setDestination] = useState("BOM");
 
@@ -26,7 +26,23 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, s
 
             <div>
                 <h2 className="text-xl font-light tracking-tight text-white mb-1">Flight Control</h2>
-                <p className="text-xs text-white/40 font-light mb-6">Configure pathfinding parameters</p>
+                <p className="text-xs text-white/40 font-light mb-4">Configure pathfinding parameters</p>
+
+                {/* 🔀 NEW TAB SWITCHER */}
+                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                    <button
+                        onClick={() => setCurrentView("map")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-all ${currentView === "map" ? "bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]" : "text-white/50 hover:text-white"}`}
+                    >
+                        <Map size={14} /> Map
+                    </button>
+                    <button
+                        onClick={() => setCurrentView("analytics")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium rounded-lg transition-all ${currentView === "analytics" ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "text-white/50 hover:text-white"}`}
+                    >
+                        <Activity size={14} /> Analytics
+                    </button>
+                </div>
             </div>
 
             {/* Aircraft Selection */}
@@ -38,8 +54,8 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, s
                             key={ac.id}
                             onClick={() => setAircraft(ac)}
                             className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${aircraft.id === ac.id
-                                    ? "bg-indigo-500/20 border-indigo-500/50 text-white"
-                                    : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                                ? "bg-indigo-500/20 border-indigo-500/50 text-white"
+                                : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
                                 }`}
                         >
                             <Plane className="w-4 h-4" />
@@ -89,7 +105,6 @@ export default function Sidebar({ onComputeRoute, showWeather, setShowWeather, s
                     />
                 </div>
 
-                {/* 🛰️ THE NEW LIVE TRAFFIC TOGGLE */}
                 <div className="flex items-center justify-between group">
                     <span className="text-sm font-light text-white/70 group-hover:text-white transition-colors">Live Air Traffic (ADS-B)</span>
                     <Switch
