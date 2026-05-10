@@ -1,3 +1,5 @@
+import { getWeather } from '../services/api';
+
 const OWM_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
 /**
@@ -51,8 +53,7 @@ export async function calculateSafeRoute(start, end, checkWeather = true) {
     if (checkWeather) {
         try {
             const fetchPromises = checkNodes.map(node => 
-                fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${node.lat}&lon=${node.lng}&appid=${OWM_API_KEY}`)
-                    .then(res => res.json())
+                getWeather(node.lat, node.lng)
             );
 
             const weatherResponses = await Promise.all(fetchPromises);

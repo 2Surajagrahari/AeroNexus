@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import WeatherPanel from "../dashboard/WeatherPanel";
 import { calculateSafeRoute } from "../../utils/flightMath";
+import { getTraffic } from "../../services/api";
 
 // ===================== ICON DEFINITIONS =====================
 const planeIcon = new L.Icon({
@@ -128,8 +129,7 @@ export default function MapView({ activeRoute, aiRouteData, showWeather, showTra
 
         const fetchTraffic = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/traffic');
-                const json = await res.json();
+                const json = await getTraffic();
                 if (json.data) setLivePlanes(json.data);
             } catch (err) {
                 console.error("⚠️ Live traffic failed:", err);

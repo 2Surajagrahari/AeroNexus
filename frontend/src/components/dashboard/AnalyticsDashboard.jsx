@@ -3,6 +3,7 @@ import {
     LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar
 } from "recharts";
 import { Activity, ShieldAlert, TrendingDown, Database } from "lucide-react";
+import { getAnalytics } from "../../services/api";
 
 export default function AnalyticsDashboard() {
     const [stats, setStats] = useState({ totalFlights: 0, totalHazardsAvoided: 0, databaseStatus: "Connecting..." });
@@ -12,8 +13,7 @@ export default function AnalyticsDashboard() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/analytics');
-                const json = await response.json();
+                const json = await getAnalytics();
 
                 setStats(json.stats);
 

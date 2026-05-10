@@ -6,6 +6,7 @@ import RoutePanel from "../route/RoutePanel";
 import TelemetryPanel from "./TelemetryPanel";
 import AnalyticsDashboard from "./AnalyticsDashboard"; // 👈 IMPORTED THE NEW DASHBOARD
 import { getAirportData } from "../../utils/airports";
+import { getRoute, getWeather } from "../../services/api";
 
 export default function DashboardLayout() {
     // Top-level state for the flight route & map layers
@@ -36,16 +37,10 @@ export default function DashboardLayout() {
             setSelectedPath('alpha');
 
             try {
-                const routeResponse = await fetch(`http://localhost:3000/api/route?from=${originCode}&to=${destCode}`);
-                if (routeResponse.ok) {
-                    const backendData = await routeResponse.json();
-                    setAiRouteData(backendData);
-                }
+                const backendData = await getRoute(originCode, destCode);
+                setAiRouteData(backendData);
 
-                const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
-                const url = `https://api.openweathermap.org/data/2.5/weather?lat=${destData.coordinates[0]}&lon=${destData.coordinates[1]}&units=metric&appid=${apiKey}`;
-                const weatherRes = await fetch(url);
-                const weatherData = await weatherRes.json();
+                const weatherData = await getWeather(destData.coordinates[0], destData.coordinates[1]);
                 weatherData.name = destData.name;
                 setDestinationWeather(weatherData);
 
