@@ -1,5 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
+// Models & Services
+const Flight = require('./models/Flight');
+const User = require('./models/User');
+const OTP = require('./models/OTP');
 const { runAStarOptimization } = require('./routeEngine');
 const { getHazardousNodes } = require('./weatherService');
 
@@ -10,18 +19,119 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================================
-// 💾 NEW: IN-MEMORY FLIGHT DATABASE
-// (You can easily swap this for MongoDB/PostgreSQL later!)
+// 🔌 DATABASE & EMAIL CONFIGURATION
 // ==========================================
-let flightDatabase = [];
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('🟢 Connected to MongoDB Atlas'))
+    .catch(err => console.error('🔴 MongoDB Connection Error:', err));
 
-app.get('/', (req, res) => {
-    res.json({
-        service: "AeroNexus API Engine",
-        status: "Online",
-        message: "Welcome to the AeroNexus API. Use /api/route?from=IATA&to=IATA to dispatch a flight."
-    });
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
 });
+
+// ==========================================
+// 🔐 ENTERPRISE AUTHENTICATION ROUTES
+// ==========================================
+
+// 1. Send OTP Email for Registration
+app.post('/api/auth/register-request', async (req, res) => {
+    try {
+        const { email, password, username } = req.body;
+
+        const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+        if (existingUser) return res.status(400).json({ error: "Email or username already exists." });
+
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        await OTP.findOneAndDelete({ email });
+        await OTP.create({ email, otp: generatedOtp });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'AeroNexus - Verification Code',
+            html: `
+                <div style="font-family: Arial, sans-serif; background-color: #0a0a0a; color: white; padding: 40px; border-radius: 10px;">
+                    <h2 style="color: #10b981;">AeroNexus Access Request</h2>
+                    <p>Your authorization code is:</p>
+                    <h1 style="letter-spacing: 5px; color: white;">${generatedOtp}</h1>
+                    <p style="color: #666;">This code expires in 5 minutes.</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        res.json({ message: "OTP sent successfully to your email!" });
+
+    } catch (error) {
+        console.error("Email Error:", error);
+        res.status(500).json({ error: "Failed to process registration request." });
+    }
+});
+
+// 2. Verify OTP and Create User
+app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+        const { email, username, password, otp } = req.body;
+
+        const validOtp = await OTP.findOne({ email, otp });
+        if (!validOtp) return res.status(400).json({ error: "Invalid or expired OTP." });
+
+        const newUser = new User({ email, username, password, role: 'Dispatcher' });
+        await newUser.save();
+
+        await OTP.findOneAndDelete({ email });
+
+        const token = jwt.sign(
+            { id: newUser._id, role: newUser.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            message: "Registration successful!",
+            token,
+            user: { username: newUser.username, email: newUser.email, role: newUser.role }
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: "Failed to verify OTP." });
+    }
+});
+
+// 3. Standard Login
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ $or: [{ username: username }, { email: username }] });
+
+        if (!user || !(await user.comparePassword(password))) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        res.json({
+            message: "Login successful",
+            token,
+            user: { username: user.username, role: user.role }
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Server authentication error" });
+    }
+});
+
+// ==========================================
+// ✈️ FLIGHT & DATA ROUTES
+// ==========================================
 
 app.get('/api/route', async (req, res) => {
     try {
@@ -32,95 +142,39 @@ app.get('/api/route', async (req, res) => {
             return res.status(400).json({ error: "Missing 'from' and 'to' parameters." });
         }
 
-        console.log(`\n✈️ --- NEW FLIGHT PLAN REQUEST: ${startAirport} to ${endAirport} ---`);
-
         let initialResult = runAStarOptimization(startAirport, endAirport, [], {});
 
         if (initialResult.error || initialResult.status === "Failed") {
-            console.error("Pathfinding failed:", initialResult.error || initialResult.message);
-            return res.status(404).json({
-                error: initialResult.error || initialResult.message || "Route calculation failed."
-            });
+            return res.status(404).json({ error: initialResult.error || "Route calculation failed." });
         }
 
         const { hazardousNodes, windData } = await getHazardousNodes(initialResult.route);
-        const simStorm = req.query.simStorm;
-
-        if (simStorm) {
-            let fakeStormId = simStorm.toUpperCase();
-            if (!hazardousNodes.includes(fakeStormId)) {
-                console.log(`⚠️ DEV OVERRIDE: Spawning artificial storm at ${fakeStormId}`);
-                hazardousNodes.push(fakeStormId);
-            }
-        }
-
         let optimizedResult = runAStarOptimization(startAirport, endAirport, hazardousNodes, windData);
 
-        let destWind = windData[endAirport] ? windData[endAirport].speed : 0;
-        let isStormAtDest = hazardousNodes.includes(endAirport) ? 1 : 0;
-        let delayPrediction = { delay_probability_percent: 0, ai_assessment: "AI Service Offline" };
-
-        try {
-            const mlUrl = process.env.ML_URL || 'http://localhost:5000';
-            const aiResponse = await fetch(`${mlUrl}/predict?wind=${destWind}&storm=${isStormAtDest}`);
-            delayPrediction = await aiResponse.json();
-        } catch (err) {
-            console.error("⚠️ Python ML Microservice is offline.");
-        }
-
-        // 🎬 PORTFOLIO DEMO OVERRIDE
-        if (simStorm === 'BPL' && optimizedResult.route) {
-            optimizedResult.route.splice(1, 0, {
-                id: "AMD",
-                name: "Ahmedabad Detour",
-                lat: 23.0734,
-                lon: 72.6266
-            });
-            optimizedResult.totalDistance = (optimizedResult.totalDistance || 1137) + 184;
-        }
-
-        // ==========================================
-        // 💾 NEW: SAVE FLIGHT TO DATABASE BEFORE RESPONDING
-        // ==========================================
-        const flightRecord = {
-            id: `FLT-${Math.floor(Math.random() * 10000)}`,
-            timestamp: new Date().toISOString(),
+        // Save to Database
+        const newFlight = new Flight({
+            flightId: `FLT-${Math.floor(Math.random() * 10000)}`,
             origin: startAirport,
             destination: endAirport,
             alphaDistance: optimizedResult.totalDistance || 0,
             betaDistance: initialResult.totalDistance || 0,
-            hazardsAvoided: hazardousNodes.length,
-            delayRisk: delayPrediction.delay_probability_percent || 0
-        };
-        flightDatabase.push(flightRecord); // Save it!
-        console.log(`💾 Flight saved to Analytics DB. Total records: ${flightDatabase.length}`);
-        // ==========================================
-
-
-        if (hazardousNodes.length > 0) {
-            return res.json({
-                message: "LIVE WEATHER ALERT: Route dynamically recalculated to avoid severe weather. Fuel optimized.",
-                avoidedHazards: hazardousNodes,
-                ai_delay_prediction: delayPrediction,
-                alphaRoute: optimizedResult,
-                betaRoute: initialResult
-            });
-        }
+            hazardsAvoided: hazardousNodes.length
+        });
+        await newFlight.save().catch(err => console.error("DB Save Error:", err));
 
         res.json({
-            message: "Live weather check passed. Clear skies route approved. Fuel optimized.",
-            ai_delay_prediction: delayPrediction,
+            message: hazardousNodes.length > 0 ? "LIVE WEATHER ALERT: Route dynamically recalculated." : "Clear skies route approved.",
+            avoidedHazards: hazardousNodes,
             alphaRoute: optimizedResult,
             betaRoute: initialResult
         });
 
     } catch (error) {
-        console.error("🔥 FATAL SERVER ERROR:", error);
-        res.status(500).json({ error: "Internal Server Error during route calculation." });
+        console.error("SERVER ERROR:", error);
+        res.status(500).json({ error: "Internal Server Error." });
     }
 });
 
-// 📡 LIVE ADS-B AIR TRAFFIC
 app.get('/api/traffic', async (req, res) => {
     try {
         const response = await fetch('https://opensky-network.org/api/states/all?lamin=8.0&lomin=68.0&lamax=37.0&lomax=97.0');
@@ -130,39 +184,29 @@ app.get('/api/traffic', async (req, res) => {
         const planes = (data.states || []).map(state => ({
             id: state[0],
             callsign: state[1] ? state[1].trim() : 'UNKNOWN',
-            country: state[2],
             lon: state[5],
-            lat: state[6],
-            altitude_m: state[7] || 0,
-            velocity_ms: state[9] || 0,
-            heading: state[10] || 0
+            lat: state[6]
         })).filter(p => p.lat && p.lon);
 
         res.json({ status: "success", count: planes.length, data: planes });
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch live traffic." });
+        res.status(500).json({ error: "Failed to fetch traffic." });
     }
 });
 
-// ==========================================
-// 📊 NEW: ANALYTICS ENDPOINT FOR REACT DASHBOARD
-// ==========================================
-app.get('/api/analytics', (req, res) => {
-    // Calculate some quick business stats to send to React
-    const totalFlights = flightDatabase.length;
-    const totalHazardsAvoided = flightDatabase.reduce((sum, flight) => sum + flight.hazardsAvoided, 0);
+app.get('/api/analytics', async (req, res) => {
+    try {
+        const totalFlights = await Flight.countDocuments();
+        const hazardAgg = await Flight.aggregate([{ $group: { _id: null, total: { $sum: "$hazardsAvoided" } } }]);
+        const totalHazardsAvoided = hazardAgg.length > 0 ? hazardAgg[0].total : 0;
+        const recentFlights = await Flight.find().sort({ timestamp: -1 }).limit(50);
 
-    // Send the raw data and the stats
-    res.json({
-        stats: {
-            totalFlights,
-            totalHazardsAvoided,
-            databaseStatus: "Online (In-Memory)"
-        },
-        recentFlights: flightDatabase.slice(-50).reverse() // Send newest 50 flights
-    });
+        res.json({ stats: { totalFlights, totalHazardsAvoided }, recentFlights });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch analytics." });
+    }
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 AeroNexus Live API running on http://localhost:${PORT}`);
+    console.log(` AeroNexus Chal pda hai on http://localhost:${PORT}`);
 });

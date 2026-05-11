@@ -16,9 +16,10 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Don't show navbar on dashboard
-  if (location.pathname.startsWith("/dashboard")) return null;
+  // Don't show navbar on dashboard or login page
+  if (location.pathname.startsWith("/dashboard") || location.pathname === "/login") return null;
 
+  // 🛠️ FIXED: Dashboard now correctly points to /dashboard
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Dashboard", path: "/dashboard" },
@@ -30,11 +31,10 @@ export default function Navbar() {
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
-          isScrolled
+        className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${isScrolled
             ? "bg-black/60 backdrop-blur-md border-white/10 shadow-lg py-3"
             : "bg-transparent border-transparent py-5"
-        }`}
+          }`}
       >
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
@@ -60,13 +60,15 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
-            
+
             <div className="flex gap-4 items-center">
+              {/* 🛠️ FIXED: Sign In points to /login */}
               <Link to="/login" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Sign In
               </Link>
-              <Link 
-                to="/dashboard" 
+              {/* 🛠️ FIXED: Launch App points to /login so they authenticate first */}
+              <Link
+                to="/login"
                 className="group relative px-5 py-2 text-sm font-medium bg-white text-black rounded-full overflow-hidden flex items-center gap-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] transition-all"
               >
                 Launch App
@@ -76,7 +78,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             className="md:hidden text-gray-300 hover:text-white p-2"
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -106,7 +108,7 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="h-px bg-white/10 my-4" />
-              <Link 
+              <Link
                 to="/login"
                 className="text-2xl font-semibold text-gray-300 hover:text-white"
                 onClick={() => setIsOpen(false)}
@@ -114,7 +116,7 @@ export default function Navbar() {
                 Sign In
               </Link>
               <Link
-                to="/dashboard"
+                to="/login"
                 className="mt-4 py-4 bg-white text-black text-center rounded-xl text-lg font-bold"
                 onClick={() => setIsOpen(false)}
               >

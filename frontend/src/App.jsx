@@ -3,6 +3,7 @@ import { Routes, Route, Outlet } from "react-router-dom";
 import Navbar from "./components/ui/Navbar";
 import { Footer } from "./components/footer-section";
 import PageLoader from "./components/ui/PageLoader";
+import { AuthPage } from "./components/auth-page";
 
 // Ensures the preloader stays visible for at least `ms` milliseconds
 const lazyWithMinDelay = (importFn, ms = 2000) =>
@@ -46,6 +47,9 @@ export default function App() {
 
         {/* Dashboard - has its own specific layout */}
         <Route path="/dashboard" element={<DashboardLayout />} />
+
+        {/* Auth Page */}
+        <Route path="/login" element={<AuthPage />} />
 
         {/* 404 Catch All */}
         <Route path="*" element={<NotFound />} />
