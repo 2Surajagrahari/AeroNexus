@@ -1,23 +1,26 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Note: If your terminal complains about this line, just run 'npm install bcryptjs' 
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['Admin', 'Dispatcher'], default: 'Dispatcher' }
+    role: { type: String, default: 'Dispatcher' },
+    createdAt: { type: Date, default: Date.now }
 });
 
-// 🛡️ MODERN STANDARD: Automatically hash passwords before saving
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
+// 🛡️ The Fixed Password Hashing Hook (No 'next' needed!)
+UserSchema.pre('save', async function () {
+    // Only scramble the password if it's a brand new account or being changed
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
 });
 
-// Helper method to check passwords during login
-userSchema.methods.comparePassword = async function (candidatePassword) {
+// 🔐 Password Verification Method for Login
+UserSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', UserSchema);

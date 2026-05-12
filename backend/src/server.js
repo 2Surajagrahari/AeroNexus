@@ -99,7 +99,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ error: "Failed to verify OTP." });
+        // 👇 This will now accurately catch OTP saving errors and print them!
+        console.error("🔥 OTP VERIFICATION CRASH:", error);
+        res.status(500).json({ error: `DATABASE CRASH: ${error.message}` });
     }
 });
 
@@ -125,6 +127,8 @@ app.post('/api/auth/login', async (req, res) => {
             user: { username: user.username, role: user.role }
         });
     } catch (error) {
+        // 👇 Fixed this block so it doesn't say "OTP verification failed" on a login error
+        console.error("Login Error:", error);
         res.status(500).json({ error: "Server authentication error" });
     }
 });
@@ -208,5 +212,5 @@ app.get('/api/analytics', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(` AeroNexus Chal pda hai on http://localhost:${PORT}`);
+    console.log(`🚀 AeroNexus Chal pda hai on http://localhost:${PORT}`);
 });
