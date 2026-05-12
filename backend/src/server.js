@@ -132,6 +132,26 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ error: "Server authentication error" });
     }
 });
+// 4. Get Current Logged-In User Profile
+app.get('/api/auth/me', async (req, res) => {
+    try {
+        // Grab the token from the request headers
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) return res.status(401).json({ error: "Access Denied. No token provided." });
+
+        // Decode the token to get the user's ID
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Find the user in the database (but EXCLUDE the password for security)
+        const user = await User.findById(decoded.id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found." });
+
+        res.json(user);
+    } catch (error) {
+        console.error("Profile Fetch Error:", error);
+        res.status(401).json({ error: "Invalid or expired token." });
+    }
+});
 
 // ==========================================
 // ✈️ FLIGHT & DATA ROUTES
